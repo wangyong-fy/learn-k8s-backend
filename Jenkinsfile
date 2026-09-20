@@ -80,7 +80,7 @@ EOF
           kubectl -n jenkins delete pod ${POD} --ignore-not-found
           kubectl -n jenkins apply -f /tmp/kaniko-be.yaml
 
-          strip_ansi() { sed -e 's/\x1b\[[0-9;]*m//g'; }
+          strip_ansi() { sed -e 's/\\x1b\\[[0-9;]*m//g'; }
           i=0
           while [ $i -lt 180 ]; do
             PH=$(kubectl -n jenkins get pod ${POD} -o jsonpath='{.status.phase}' 2>/dev/null || echo "")
