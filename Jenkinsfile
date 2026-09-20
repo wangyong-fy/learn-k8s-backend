@@ -112,7 +112,7 @@ EOF
           set -e
           kubectl -n "$APP_NS" apply -f k8s/backend.yaml
           kubectl -n "$APP_NS" set image deployment/backend backend=${REGISTRY}/learn-k8s-backend:${TAG}
-          kubectl -n "$APP_NS" rollout status deployment/backend --timeout=300s
+          kubectl -n "$APP_NS" rollout status deployment/backend --timeout=600s
         '''
       }
     }
