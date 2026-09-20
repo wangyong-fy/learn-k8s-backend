@@ -80,23 +80,27 @@ EOF
           kubectl -n jenkins delete pod ${POD} --ignore-not-found
           kubectl -n jenkins apply -f /tmp/kaniko-be.yaml
 
+          strip_ansi() { sed -e 's/\x1b\[[0-9;]*m//g'; }
           i=0
           while [ $i -lt 180 ]; do
             PH=$(kubectl -n jenkins get pod ${POD} -o jsonpath='{.status.phase}' 2>/dev/null || echo "")
-            if [ "$PH" = "Succeeded" ]; then echo "backend 镜像推送成功"; break; fi
+            if [ "$PH" = "Succeeded" ]; then echo "==== backend 镜像推送成功 ===="; break; fi
             if [ "$PH" = "Failed" ]; then
-              echo "backend 构建失败，日志："
-              kubectl -n jenkins logs ${POD} --tail=200
+              echo "==== backend 构建失败，完整日志 ===="
+              kubectl -n jenkins logs ${POD} 2>/dev/null | strip_ansi
               exit 1
             fi
             if [ $((i % 6)) -eq 0 ]; then
-              echo "[$((i*10))s] 状态=${PH:-Pending} 最近日志:"
-              kubectl -n jenkins logs ${POD} --tail=3 2>/dev/null | sed 's/^/    /' || true
+              echo "---- [$((i*10))s] 状态=${PH:-Pending} 最近 8 行 ----"
+              kubectl -n jenkins logs ${POD} --tail=8 2>/dev/null | strip_ansi | sed 's/^/    /' || true
+            else
+              LAST=$(kubectl -n jenkins logs ${POD} --tail=1 2>/dev/null | strip_ansi || true)
+              [ -n "$LAST" ] && echo "    [$((i*10))s] $LAST"
             fi
             sleep 10
             i=$((i+1))
           done
-          [ "$PH" = "Succeeded" ] || { echo "backend 构建超时"; kubectl -n jenkins logs ${POD} --tail=200; exit 1; }
+          [ "$PH" = "Succeeded" ] || { echo "==== backend 构建超时 ===="; kubectl -n jenkins logs ${POD} 2>/dev/null | strip_ansi | tail -200; exit 1; }
           kubectl -n jenkins delete pod ${POD} --ignore-not-found
         '''
       }
